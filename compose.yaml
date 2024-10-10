@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  registry:
+    image: registry:2
+    ports:
+      - 5000:5000
+    environment:
+      - LOG_LEVEL=debug
+      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
+      - REGISTRY_AUTH=token
+      - REGISTRY_AUTH_TOKEN_REALM=http://localhost:8000/auth
+      - REGISTRY_AUTH_TOKEN_SERVICE=Authentication
+      - REGISTRY_AUTH_TOKEN_ISSUER=Example Issuer
+      - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/mnt/local/certs/RootCA.crt
+      - REGISTRY_HTTP_TLS_CERTIFICATE=/mnt/local/certs/RootCA.crt
+      - REGISTRY_HTTP_TLS_KEY=/mnt/local/certs/RootCA.key
+    volumes:
+      - "./volumes/data:/mnt/registry/data"
+      - "./certs:/mnt/local/certs"
+
+  auth_server:
+    build: ./
+    container_name: auth_server
+    environment:
+      - CRT_FILE=/mnt/certs/RootCA.crt
+      - KEY_FILE=/mnt/certs/RootCA.key
+      - ISSUER=Example Issuer
+    ports:
+      - 8000:8000
+    volumes:
+      - "./certs:/mnt/certs"
