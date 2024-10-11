@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry
+spec:
+  selector:
+    app: docker-registry
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry
+  template:
+    metadata:
+      labels:
+        app: docker-registry
+    spec:
+      containers:
+        - name: docker-registry
+          image: registry:2
+          ports:
+            - containerPort: 5000
+          env:
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: REGISTRY_AUTH
+              value: "token"
+            - name: REGISTRY_AUTH_TOKEN_REALM
+              value: "http://auth-service:8000/auth"
+            - name: REGISTRY_AUTH_TOKEN_SERVICE
+              value: "Authentication"
+            - name: REGISTRY_AUTH_TOKEN_ISSUER
+              value: "Example Issuer"
+            - name: REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE
+              value: "/certs/RootCA.crt"
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: "/certs/RootCA.crt"
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: "/certs/RootCA.key"
+          volumeMounts:
+            - name: docker-registry-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: docker-registry-certs
+          secret:
+            secretName: docker-registry-certs
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: gladkiyva/auth-service
+          ports:
+            - containerPort: 8000
+          env:
+            - name: CRT_FILE
+              value: /certs/RootCA.crt
+            - name: KEY_FILE
+              value: /certs/RootCA.key
+            - name: ISSUER
+              value: Example Issuer
+          volumeMounts:
+            - name: docker-registry-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: docker-registry-certs
+          secret:
+            secretName: docker-registry-certs
