@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  reverse-proxy:
+    image: traefik:v2
+    command:
+      - "--log.level=INFO"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:5000"
+      - "--entrypoints.web.http.middlewares=auth@docker"
+    ports:
+      - "8080:8080"
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  registry:
+    image: registry:2
+    environment:
+      - LOG_LEVEL=INFO
+      - REGISTRY_HTTP_ADDR=:5001
+      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
+    volumes:
+      - "./volumes/data:/mnt/registry/data"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`localhost`)"
+      - "traefik.http.routers.web.entrypoints=web"
+      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.services.web.loadbalancer.server.port=5001"
+      - "traefik.http.middlewares.auth.forwardauth.address=http://auth_server:8000/validate"
+      - "traefik.http.middlewares.auth.forwardauth.trustforwardheader=true"
+
+  auth_server:
+    build: ./
+    container_name: auth_server
+    environment:
+      - CRT_FILE=/mnt/certs/RootCA.crt
+      - KEY_FILE=/mnt/certs/RootCA.key
+      - ISSUER=Example Issuer
+    ports:
+      - 8000:8000
+    volumes:
+      - "./certs:/mnt/certs"

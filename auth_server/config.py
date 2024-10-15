@@ -8,3 +8,4 @@ KEY_FILE = os.getenv("KEY_FILE", "certs/RootCA.key")
 
 ALGO = "RS256"
 ISSUER = os.getenv("ISSUER", "Example Issuer")  # The value as in the compose.yaml
+SERVICE = os.getenv("SERVICE", "Authentication")  # The value as in the compose.yaml

@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives.serialization import (
 from cryptography.x509 import load_pem_x509_certificate
 from jwt import ExpiredSignatureError, InvalidTokenError, PyJWTError
 
-from .config import ALGO, ISSUER
+from .config import ALGO, ISSUER, SERVICE
 
 
 class InvalidToken(Exception):
@@ -138,14 +138,14 @@ def create_token(
     return Token(token=token, access_token=token)
 
 
-def validate_token(token: str, public_key: bytes, opt: Option) -> dict[str, Any]:
+def validate_token(token: str, public_key: bytes) -> dict[str, Any]:
     try:
         decoded_token = jwt.decode(
             token,
             public_key,
             algorithms=[ALGO],
-            audience=opt.service,
-            issuer=opt.issuer,
+            audience=SERVICE,
+            issuer=ISSUER,
         )
         return cast(dict[str, Any], decoded_token)
     except ExpiredSignatureError:

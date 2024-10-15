@@ -2,9 +2,16 @@
 The Auth Server allows you to generate a JWT token using the `/get-token` endpoint. Both the username and password are set to `demo`.
 Use the JWT token as the password for the Docker client in the `config.json` file.
 The Docker client includes the credentials (username and JWT token) in the header when executing pull or push commands.
-The Docker client then makes a request to the Auth Server's `/auth` endpoint, passing the credentials in the header, and retrieves the same JWT token.
-Finally, the Docker registry verifies the JWT token and either allows or denies the pull or push command.
 
+**Use case 1:**
+The Docker client makes a request to the Auth Server's `/auth` endpoint, passing the credentials in the header, and retrieves the same JWT token.
+Finally, the Docker registry verifies the JWT token and either allows or denies the pull or push command.
+![Use case 1](./docs/use-case-1.jpg "Use case 1")
+
+**Use case 2:**
+The Docker client makes a request to the Authentication gateway, passing the credentials in the header.
+The Authentication gateway forwards the request to the Auth Server's `/validate` endpoint for validation. If the token is valid, the request is forwarded to the Docker registry. Otherwise, an error is returned.
+![Use case 2](./docs/use-case-2.jpg "Use case 2")
 ## Requirements
 Python 3.12+
 
@@ -25,6 +32,14 @@ pre-commit install
     ```bash
     docker compose build
     docker compose up
+    ```
+    **Use case 1:**
+    ```bash
+    docker compose up
+    ```
+    **Use case 2:**
+    ```bash
+    docker compose up -f compose-proxy.yaml
     ```
 
 3. Generate a JWT token:
@@ -73,7 +88,7 @@ pre-commit install
     poetry run uvicorn auth_server.server:app --reload
     ```
 
-# Deployment
+# Deployment (Use case 1)
 In this example, a Docker Registry and a Docker Auth Service are deployed in Kubernetes. The user requests a JWT token from the Docker Auth Service. This token is used to push an image to the Docker Registry. Additionally, the JWT token is stored in a Kubernetes secret and used to pull the image from the Docker Registry when deploying a Kubernetes Job.
 
 1. Add these lines to the hosts file:
